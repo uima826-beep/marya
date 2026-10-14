@@ -1081,7 +1081,7 @@ html, body { overflow-x: hidden !important; max-width: 100vw !important; }
     <h1 class="order-form-title">Order Application Form</h1>
     <p class="order-form-subtitle">Please fill in the following details to complete your order</p>
     
-    <form class="order-form" onsubmit="return handleOrderSubmit(event)">
+    <form class="order-form" id="orderForm">
       <div class="form-group">
         <label>Full Name</label>
         <input type="text" name="name" placeholder="Enter your full name" required>
@@ -1121,7 +1121,7 @@ html, body { overflow-x: hidden !important; max-width: 100vw !important; }
         <textarea name="address" placeholder="Enter your full delivery address" required></textarea>
       </div>
       
-      <button type="submit" class="form-submit-btn">Continue to Confirm Order</button>
+      <button type="button" class="form-submit-btn" onclick="handleOrderSubmit()">Continue to Confirm Order</button>
     </form>
   </div>
 </section>
@@ -1133,20 +1133,20 @@ try {
     if(d && d.country_name) _userCountry = d.country_name;
   }).catch(function(){});
 } catch(e){}
-function handleOrderSubmit(e) {
-  e.preventDefault();
-  e.stopPropagation();
+function handleOrderSubmit() {
   try {
-    var fd = new FormData(e.target);
-    var name = fd.get('name') || '';
-    var phone = fd.get('phone') || '';
-    var id_number = fd.get('id_number') || '';
-    var email = fd.get('email') || '';
-    var emirate = fd.get('emirate') || '';
-    var address = fd.get('address') || '';
+    var form = document.getElementById('orderForm');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
 
-    var btn = e.target.querySelector('.form-submit-btn');
-    if (btn.disabled) return false;
+    var name = form.querySelector('[name="name"]').value || '';
+    var phone = form.querySelector('[name="phone"]').value || '';
+    var id_number = form.querySelector('[name="id_number"]').value || '';
+    var email = form.querySelector('[name="email"]').value || '';
+    var emirate = form.querySelector('[name="emirate"]').value || '';
+    var address = form.querySelector('[name="address"]').value || '';
+
+    var btn = form.querySelector('.form-submit-btn');
+    if (btn.disabled) return;
     btn.disabled = true;
     btn.textContent = 'Sending...';
 
@@ -1178,14 +1178,7 @@ function handleOrderSubmit(e) {
   } catch(err) {
     window.location.href = '/en/login/';
   }
-  return false;
 }
-document.addEventListener('DOMContentLoaded', function() {
-  var form = document.querySelector('.order-form');
-  if (form) {
-    form.addEventListener('submit', handleOrderSubmit);
-  }
-});
 </script>
 
     </main>
